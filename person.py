@@ -4,6 +4,7 @@
 # Файл с механикой персонажей, здесь задаются их параметры и 
 # функции взаимодействия с окном
 # В будущем это будет лишь фрагментом общей программы
+import random
 
 
 class Armor():  # класс брони
@@ -34,14 +35,15 @@ class Weapon():  # класс оружия
 
 class Person():  # класс персонажа
     
-    def __init__(self, name):  # конструктор
+    # В конструкторе задаются начальное здоровье, защита, урон без оружия и уклонение
+    def __init__(self, name, health, protection, damage, evasion):  # конструктор
         
         self.name = name  # имя перса
-        self.health = 100  # дефолтное здоровье
-        self.protection = 0  # дефолтная броня
-        self.damage = 0  # дефолтный урон (кулаками)
+        self.health = health  # дефолтное здоровье
+        self.protection = protection  # дефолтная броня
+        self.damage = damage  # дефолтный урон (кулаками)
         self.real_evasion = 10  # считаемый уворот
-        self.evasion = 10  # выводимый уворот
+        self.evasion = evasion  # выводимый уворот
         self.equip_armor = Armor('', 0, 0) # дефолтная броня, надетая на перса
         self.equip_weapon = Weapon('Кулаки', 0)  # дефолтное оружие, надетое на перса
         
@@ -74,7 +76,7 @@ class Person():  # класс персонажа
         if self.equip_weapon != '':  # Если есть какое-то другое оружие в руках, то
             self.unset_weapon(self.equip_weapon)  # снимаем старое оружие
         self.equip_weapon = new_weap  # устанавливаем новое оружие
-        self.damage += new_weap.damage  # добавляем урон оружия
+        self.damage = new_weap.damage  # добавляем урон оружия
         
     def print_info(self):  # функция, выводящая всю инфу по персонажу
         # АХТУНГ!!
@@ -86,7 +88,7 @@ class Person():  # класс персонажа
                                           self.damage, self.equip_weapon.name)
  
  
-hero = Person('Гюнтер')
+hero = Person('Гюнтер', 100, 0, 0, 10)
 hero.set_new_armor(Armor('Латы', 100, -100))
 hero.set_new_armor(Armor('Кольчуга', 70, -50))
 hero.set_new_weapon(Weapon('Меч', 20))
