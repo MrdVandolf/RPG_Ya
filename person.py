@@ -5,6 +5,9 @@
 # функции взаимодействия с окном
 # В будущем это будет лишь фрагментом общей программы
 import random
+import sys
+from PyQt5 import QtCore, QtWidgets
+from PyQt5.QtWidgets import QApplication, QWidget
 
 
 class Armor():  # класс брони
@@ -126,6 +129,100 @@ class Person():  # класс персонажа
         else:
             the_ans += '''Выпало случайное число {} <= {} (1-100)\n
 Промах'''.format(chance_to_evade, self.out_evas)
+            
+            
+class Ui_MainWindow(QWidget):  # GUI
+
+    def __init__(self):
+        super().__init__()
+        self.setObjectName("MainWindow")
+        self.resize(1041, 725)
+        self.centralwidget = QtWidgets.QWidget(self)
+        self.centralwidget.setObjectName("centralwidget")
+        self.verticalLayoutWidget = QtWidgets.QWidget(self.centralwidget)
+        self.verticalLayoutWidget.setGeometry(QtCore.QRect(10, 70, 1021, 581))
+        self.verticalLayoutWidget.setObjectName("verticalLayoutWidget")
+        self.verticalLayout = QtWidgets.QVBoxLayout(self.verticalLayoutWidget)
+        self.verticalLayout.setContentsMargins(0, 0, 0, 0)
+        self.verticalLayout.setObjectName("verticalLayout")
+        self.pushButton = QtWidgets.QPushButton(self.verticalLayoutWidget)  # Создание кнопки магазина
+        self.pushButton.setStyleSheet("background: rgb(34, 168, 19)\n"  # Изменение цвета кнопки магазина
+                                      "")
+        self.pushButton.setObjectName("pushButton")  # Название кнопки магазина
+        self.verticalLayout.addWidget(self.pushButton)  # Добавление кнопки магазин в верхний элемент лэйаута
+        self.gridLayout = QtWidgets.QGridLayout()
+        self.gridLayout.setObjectName("gridLayout")
+        self.pushButton_4 = QtWidgets.QPushButton(self.verticalLayoutWidget)  # Кнопка "В бой" для орка
+        self.pushButton_4.setObjectName("pushButton_4")
+        self.gridLayout.addWidget(self.pushButton_4, 4, 3, 1, 1)
+        self.pushButton_5 = QtWidgets.QPushButton(self.verticalLayoutWidget)  # Кнопка "В бой" для мага
+        self.pushButton_5.setObjectName("pushButton_5")
+        self.gridLayout.addWidget(self.pushButton_5, 4, 4, 1, 1)
+        self.label_3 = QtWidgets.QLabel(self.verticalLayoutWidget)
+        self.label_3.setObjectName("label_3")
+        self.gridLayout.addWidget(self.label_3, 3, 2, 1, 1)
+        self.label_8 = QtWidgets.QLabel(self.verticalLayoutWidget)
+        self.label_8.setObjectName("label_8")
+        self.gridLayout.addWidget(self.label_8, 3, 4, 1, 1)
+        self.label = QtWidgets.QLabel(self.verticalLayoutWidget)
+        self.label.setObjectName("label")
+        self.gridLayout.addWidget(self.label, 3, 1, 1, 1)
+        self.label_2 = QtWidgets.QLabel(self.verticalLayoutWidget)
+        self.label_2.setObjectName("label_2")
+        self.gridLayout.addWidget(self.label_2, 1, 3, 1, 1)
+        self.label_6 = QtWidgets.QLabel(self.verticalLayoutWidget)
+        self.label_6.setObjectName("label_6")
+        self.gridLayout.addWidget(self.label_6, 1, 2, 1, 1)
+        self.label_4 = QtWidgets.QLabel(self.verticalLayoutWidget)
+        self.label_4.setObjectName("label_4")
+        self.gridLayout.addWidget(self.label_4, 1, 4, 1, 1)
+        self.label_7 = QtWidgets.QLabel(self.verticalLayoutWidget)
+        self.label_7.setObjectName("label_7")
+        self.gridLayout.addWidget(self.label_7, 3, 3, 1, 1)
+        self.pushButton_3 = QtWidgets.QPushButton(self.verticalLayoutWidget)  # Кнопка "В бой" для варвара
+        self.pushButton_3.setObjectName("pushButton_3")
+        self.gridLayout.addWidget(self.pushButton_3, 4, 2, 1, 1)
+        self.pushButton_2 = QtWidgets.QPushButton(self.verticalLayoutWidget)  # Кнопка "В бой" для ловкача
+        self.pushButton_2.setObjectName("pushButton_2")
+        self.gridLayout.addWidget(self.pushButton_2, 4, 1, 1, 1)
+        self.label_5 = QtWidgets.QLabel(self.verticalLayoutWidget)
+        self.label_5.setObjectName("label_5")
+        self.gridLayout.addWidget(self.label_5, 1, 1, 1, 1)
+        self.verticalLayout.addLayout(self.gridLayout)
+        self.menubar = QtWidgets.QMenuBar(self)
+        self.menubar.setGeometry(QtCore.QRect(0, 0, 1041, 26))
+        self.menubar.setObjectName("menubar")
+
+        self.retranslateUi()
+        QtCore.QMetaObject.connectSlotsByName(self)
+
+    def retranslateUi(self):
+        _translate = QtCore.QCoreApplication.translate
+        self.setWindowTitle(_translate("MainWindow", "MainWindow"))
+        self.pushButton.setText(_translate("MainWindow", "Магазин"))
+        self.pushButton_4.setText(_translate("MainWindow", "В бой"))
+        self.pushButton_5.setText(_translate("MainWindow", "В бой"))
+        self.label_3.setText(_translate("MainWindow", "Варвар\nЕщё более крутой чувак"))
+        self.label_8.setText(_translate("MainWindow", "Маг\nАА Какой чувак"))
+        self.label.setText(_translate("MainWindow", "Ловкач\nКрутой чувак"))
+        self.label_2.setText(_translate("MainWindow", "<html><head/><body><p>"
+                                                      "<img src=\"ork.png\"/></p></body></html>"))
+        self.label_6.setText(_translate("MainWindow", "<html><head/><body><p>"
+                                                      "<img src=\"barbarian.jpg\"/></p></body></html>"))
+        self.label_4.setText(_translate("MainWindow", "<html><head/><body><p>"
+                                                      "<img src=\"mag.jpg\"/></p></body></html>"))
+        self.label_7.setText(_translate("MainWindow", "Орк\nПрям мега крутой чувак"))
+        self.pushButton_3.setText(_translate("MainWindow", "В бой"))
+        self.pushButton_2.setText(_translate("MainWindow", "В бой"))
+        self.label_5.setText(_translate("MainWindow", "<html><head/><body><p>"
+                                                      "<img src=\"magomed.png\"/></p></body></html>"))
+
+
+if __name__ == '__main__':
+    app = QApplication(sys.argv)
+    window = Ui_MainWindow()
+    window.show()
+    sys.exit(app.exec())
                                                                                                          
  
  
