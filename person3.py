@@ -16,7 +16,7 @@ class Potion:  # зелье
     def __init__(self, parameter, points, price):
         self.parameter = parameter
         self.points = points
-        self.price = price
+        self.price = price  # Цена предмета, вводится при создании
 
 
 class Armor:  # класс брони
@@ -66,7 +66,8 @@ class Person:  # класс персонажа
         self.equip_weapon = Weapon('Кулаки', 3, 0)  # дефолтное оружие, надетое на перса
         self.rival = ''  # Соперник
         self.win = ''  # Список, в котором выводится вся инфа персонажа
-        self.money = money  # Золото игрока
+        
+        self.money = money  # Золото игрока (запас денег игрока)
 
     def set_win(self, win):  # Функция, в которой устанавливается класс, для вывода в нем инфы персонажа
         self.win = win
@@ -178,6 +179,7 @@ class UiMainWindow(QWidget):
     def __init__(self, hero):
         super().__init__()
         self.turn = 'player'
+        # Третье (второе) значение у этих предметов - их цена, расставляй ее там
         self.Items = [Weapon('Меч', 20, 40), Weapon('Боевой топор', 40, 80),
                       Weapon('Боевой молот', 70, 140), Armor('Кираса', 30, 0, 45),
                       Armor('Кольчуга', 60, -30, 90), Armor('Латы', 100, -50, 180)]
@@ -189,7 +191,7 @@ class UiMainWindow(QWidget):
                       'mail_button': self.Items[4],
                       'plate_armor': self.Items[5]}
 
-        self.Rivals = [Person('Шарль Убийца', 80, 15, 35, 60, 40),
+        self.Rivals = [Person('Шарль Убийца', 80, 15, 40, 60, 40),
                        Person('Харальд', 140, 35, 50, 0, 40),
                        Person("Ураг гро-Шуб", 120, 25, 60, 30, 60),
                        Person('Малакат', 90, 10, 70, 60, 120)]
@@ -308,7 +310,7 @@ class UiMainWindow(QWidget):
                                                "\n"
                                                "Характкристики:\n"
                                                "Здоровье : 80\n"
-                                               "Атака: 35\n"
+                                               "Атака: 40\n"
                                                "Защита: 15\n"
                                                "Увертливость: 40"))
         label_3.setText(_translate("MainWindow", "Харальд\n"
@@ -733,6 +735,7 @@ class UiMainWindow(QWidget):
         for i in self.fight_list:
             i.hide()
 
+    # ФУНКЦИЯ ПОКУПКИ ПРЕДМЕТА
     def buy_item(self):
         self.sender().setText('Надеть')
         self.sender().disconnect()
