@@ -168,11 +168,10 @@ class Person:  # класс персонажа
         chance_to_evade = randint(1, 100)  # число, шанс попадания
         if chance_to_evade > self.evasion:  # если шанс попадания не больше уклонения
             # (т.е. выпало случайное число на кубике)
-            critism_of_damage = randint(7, 10) / 10  # коэффициент уменьшения брони
+            critism_of_damage = randint(8, 10) / 10  # коэффициент уменьшения брони
             damage = att - ((self.protection + self.out_protec) * critism_of_damage)  # формула, высчитывающая нанесенный урон
-            damage += int(att * 0.2)
             if damage < 0:
-                damage = 0
+                damage = att * 0.25
             self.health -= damage  # формула по вычету здоровья
             if self.health < 0:
                 self.health = 0
@@ -193,7 +192,7 @@ class UiMainWindow(QWidget):
         # Третье (второе) значение у этих предметов - их цена, расставляй ее там
         self.Items = [Weapon('Меч', 20, 30), Weapon('Боевой топор', 40, 50),
                       Weapon('Боевой молот', 70, 80), Armor('Кираса', 30, 0, 20),
-                      Armor('Кольчуга', 60, -30, 50), Armor('Латы', 100, -50, 100),
+                      Armor('Кольчуга', 60, -30, 55), Armor('Латы', 100, -50, 100),
                       Potion('Зелье Ловкости', 30, 30), Potion('Ярость Берсерка', 30, 30),
                       Potion('Камнекожа', 30, 30)]
 
