@@ -4,6 +4,7 @@
 # Файл с механикой персонажей, здесь задаются их параметры и
 # функции взаимодействия с окном
 # В будущем это будет лишь фрагментом общей программы
+
 import time
 from random import *
 import sys
@@ -13,10 +14,21 @@ from PyQt5.QtWidgets import *
 
 class Potion:  # зелье
 
-    def __init__(self, parameter, points, price):
+    def __init__(self, parameter, bonus, points, price):
         self.parameter = parameter
+        self.bonus = bonus
         self.points = points
+        self.i_type = 'potion'
         self.price = price  # Цена предмета, вводится при создании
+
+    def get_price(self):
+        return self.price
+
+    def get_bonus(self):
+        return self.bonus, self.points
+
+    def name(self):
+        return self.parameter
 
 
 class Armor:  # класс брони
@@ -70,6 +82,7 @@ class Person:  # класс персонажа
         self.evasion = evasion  # выводимый уворот
         self.equip_armor = Armor('', 0, 0, 0)  # дефолтная броня, надетая на перса
         self.equip_weapon = Weapon('Кулаки', 3, 0)  # дефолтное оружие, надетое на перса
+        self.potion_effects = {'evasion': 0, 'damage': 0, 'protect': 0}  # Эффекты от зелий
         self.rival = ''  # Соперник
         self.win = ''  # Список, в котором выводится вся инфа персонажа
 
@@ -180,6 +193,28 @@ class Person:  # класс персонажа
             the_ans += 'Промах\n'
         return the_ans
 
+    def drink(self, potion):  # функция для выпивания зелий
+        if potion.bonus == 'evasion':
+            self.potion_effects['evasion'] += potion.points
+
+        elif potion.bonus == 'damage':
+            self.potion_effects['damage'] += potion.points
+
+        elif potion.bonus == 'protect':
+            self.potion_effects['protect'] += potion.points
+        self.change_potion_effects()
+
+    def after_fight(self):
+        for i in self.potion_effects.values():
+            self.potion_effects[i] = 0
+
+        self.change_potion_effects()
+
+    def change_potion_effects(self):
+        self.damage += self.potion_effects['damage']
+        self.protection += self.potion_effects['protect']
+        self.evasion += self.potion_effects['evasion']
+
 
 class UiMainWindow(QWidget):
 
@@ -187,16 +222,21 @@ class UiMainWindow(QWidget):
         super().__init__()
         self.turn = 'player'
         # Третье (второе) значение у этих предметов - их цена, расставляй ее там
-        self.Items = [Weapon('Меч', 20, 40), Weapon('Боевой топор', 40, 80),
-                      Weapon('Боевой молот', 70, 140), Armor('Кираса', 30, 0, 45),
-                      Armor('Кольчуга', 60, -30, 90), Armor('Латы', 100, -50, 180)]
+        self.Items = [Weapon('Меч', 20, 30), Weapon('Боевой топор', 40, 50),
+                      Weapon('Боевой молот', 70, 80), Armor('Кираса', 30, 0, 25),
+                      Armor('Кольчуга', 60, -30, 50), Armor('Латы', 100, -50, 100),
+                      Potion('Зелье Ловкости', 'evasion', 30, 30), Potion('Ярость Берсерка', 'damage', 30, 30),
+                      Potion('Каменная кожа', 'protect', 30, 30)]
 
         self.ITEMS = {'sword_button': self.Items[0],
                       'axe_button': self.Items[1],
                       'hammer_button': self.Items[2],
                       'cuirass': self.Items[3],
                       'mail_button': self.Items[4],
-                      'plate_armor': self.Items[5]}
+                      'plate_armor': self.Items[5],
+                      'potion_agility': self.Items[6],
+                      'berserker': self.Items[7],
+                      'stone_skin': self.Items[8]}
 
         self.Rivals = [Person('Шарль Убийца', 80, 15, 40, 60, 40),
                        Person('Харальд', 140, 35, 50, 0, 40),
@@ -209,89 +249,77 @@ class UiMainWindow(QWidget):
                        'wizard': self.Rivals[3]}
 
         self.player = hero  # Задаем героя
+        self.potions = []  # Список купленных зелий(опустошается после боя, как и эффекты от них)
         self.rival = ''
         self.setObjectName("RPG game")
         self.shop_list = []
         self.main_list = []
         self.fight_list = []
-        self.setMinimumSize(QtCore.QSize(971, 716))
-        self.setMaximumSize(QtCore.QSize(971, 716))
         self.main_create()
-        self.gold = 250  # Количество золота
 
     def main_create(self):
 
-        self.resize(971, 716)
+        self.move(100, 100)
 
         centralwidget = QWidget(self)
         centralwidget.setObjectName("centralwidget")
+        self.grid = QGridLayout(self)
 
         # Надпись "Характеристики"
         self.label_13 = QLabel(centralwidget)
-        self.label_13.setGeometry(QtCore.QRect(10, 50, 141, 31))
         self.label_13.setObjectName("label_13")
 
         self.damage = QLabel(centralwidget)
-        self.damage.setGeometry(QtCore.QRect(170, 40, 141, 21))
         self.damage.setObjectName("damage")
 
         self.protection = QLabel(centralwidget)
-        self.protection.setGeometry(QtCore.QRect(170, 100, 141, 21))
         self.protection.setObjectName("protection")
 
         pushButton = QPushButton(centralwidget)
-        pushButton.setGeometry(QtCore.QRect(780, 10, 181, 71))
         pushButton.setStyleSheet("background: rgb(34, 168, 19)\n""")
         pushButton.setObjectName("pushButton")
         pushButton.pressed.connect(self.shop_open)
 
         self.evasion_lab = QLabel(centralwidget)
-        self.evasion_lab.setGeometry(QtCore.QRect(170, 70, 141, 21))
         self.evasion_lab.setObjectName("evasion_lab")
 
         self.hp = QLabel(centralwidget)
-        self.hp.setGeometry(QtCore.QRect(170, 10, 141, 21))
         self.hp.setObjectName("hp")
 
         label_6 = QLabel(centralwidget)
-        label_6.setGeometry(QtCore.QRect(250, 180, 231, 300))
         label_6.setObjectName("label_6")
+
         label_5 = QLabel(centralwidget)
-        label_5.setGeometry(QtCore.QRect(10, 180, 231, 300))
         label_5.setObjectName("label_5")
+
         label_2 = QLabel(centralwidget)
-        label_2.setGeometry(QtCore.QRect(490, 180, 231, 300))
         label_2.setObjectName("label_2")
+
         label_4 = QLabel(centralwidget)
-        label_4.setGeometry(QtCore.QRect(730, 180, 231, 300))
         label_4.setObjectName("label_4")
+
         label = QLabel(centralwidget)
-        label.setGeometry(QtCore.QRect(10, 490, 181, 131))
         label.setObjectName("label")
+
         label_3 = QLabel(centralwidget)
-        label_3.setGeometry(QtCore.QRect(250, 490, 151, 131))
         label_3.setObjectName("label_3")
+
         label_7 = QLabel(centralwidget)
-        label_7.setGeometry(QtCore.QRect(490, 490, 151, 131))
         label_7.setObjectName("label_7")
+
         label_8 = QLabel(centralwidget)
-        label_8.setGeometry(QtCore.QRect(730, 490, 111, 131))
         label_8.setObjectName("label_8")
 
         self.assasin = QPushButton(centralwidget)
-        self.assasin.setGeometry(QtCore.QRect(10, 630, 231, 41))
         self.assasin.setObjectName("self.assasin")
 
         self.barbarian = QPushButton(centralwidget)
-        self.barbarian.setGeometry(QtCore.QRect(250, 630, 231, 41))
         self.barbarian.setObjectName("self.barbarian")
 
         self.orc = QPushButton(centralwidget)
-        self.orc.setGeometry(QtCore.QRect(490, 630, 231, 41))
         self.orc.setObjectName("self.orc")
 
         self.wizard = QPushButton(centralwidget)
-        self.wizard.setGeometry(QtCore.QRect(730, 630, 231, 41))
         self.wizard.setObjectName("self.wizard")
 
         QtCore.QMetaObject.connectSlotsByName(self)
@@ -313,38 +341,50 @@ class UiMainWindow(QWidget):
                                                  "<img src=\"magomed.png\"/></p></body></html>"))
         label_2.setText(_translate("MainWindow", "<html><head/><body><p><img src=\"ork.png\"/></p></body></html>"))
         label_4.setText(_translate("MainWindow", "<html><head/><body><p><img src=\"mag.jpg\"/></p></body></html>"))
-        label.setText(_translate("MainWindow", "Шарль Убийца\n"
-                                               "Ловкий и увертливый убийца\n"
-                                               "\n"
+
+        label.setText(_translate("MainWindow", "{}\n"
+                                               "Великий ветеран Арены\n\n"
                                                "Характкристики:\n"
-                                               "Здоровье : 80\n"
-                                               "Атака: 40\n"
-                                               "Защита: 15\n"
-                                               "Увертливость: 40"))
-        label_3.setText(_translate("MainWindow", "Харальд\n"
-                                                 "Суровый и сильный воин\n"
-                                                 "\n"
+                                               "Здоровье : {}\n"
+                                               "Атака: {}\n"
+                                               "Защита: {}\n"
+                                               "Увертливость: {}".format(self.Rivals[0].name,
+                                                                         self.Rivals[0].health, self.Rivals[0].damage,
+                                                                         self.Rivals[0].protection,
+                                                                         self.Rivals[0].evasion)))
+
+        label_3.setText(_translate("MainWindow", "{}\n"
+                                                 "Великий ветеран Арены\n\n"
                                                  "Характкристики:\n"
-                                                 "Здоровье : 140\n"
-                                                 "Атака: 50\n"
-                                                 "Защита: 35\n"
-                                                 "Увертливость: 0"))
-        label_7.setText(_translate("MainWindow", "Ураг гро-шуб\n"
-                                                 "Прям мега крутой чувак\n"
-                                                 "\n"
+                                                 "Здоровье : {}\n"
+                                                 "Атака: {}\n"
+                                                 "Защита: {}\n"
+                                                 "Увертливость: {}".format(self.Rivals[1].name,
+                                                                           self.Rivals[1].health, self.Rivals[1].damage,
+                                                                           self.Rivals[1].protection,
+                                                                           self.Rivals[1].evasion)))
+
+        label_7.setText(_translate("MainWindow", "{}\n"
+                                                 "Великий ветеран Арены\n\n"
                                                  "Характкристики:\n"
-                                                 "Здоровье : 120\n"
-                                                 "Атака: 60\n"
-                                                 "Защита: 25\n"
-                                                 "Увертливость: 30"))
-        label_8.setText(_translate("MainWindow", "Малакат\n"
-                                                 "АА Какой чувак\n"
-                                                 "\n"
+                                                 "Здоровье : {}\n"
+                                                 "Атака: {}\n"
+                                                 "Защита: {}\n"
+                                                 "Увертливость: {}".format(self.Rivals[2].name,
+                                                                           self.Rivals[2].health, self.Rivals[2].damage,
+                                                                           self.Rivals[2].protection,
+                                                                           self.Rivals[2].evasion)))
+
+        label_8.setText(_translate("MainWindow", "{}\n"
+                                                 "Вечный Чемпион Арены\n\n"
                                                  "Характкристики:\n"
-                                                 "Здоровье : 90\n"
-                                                 "Атака: 70\n"
-                                                 "Защита: 10\n"
-                                                 "Увертливость: 40"))
+                                                 "Здоровье : {}\n"
+                                                 "Атака: {}\n"
+                                                 "Защита: {}\n"
+                                                 "Увертливость: {}".format(self.Rivals[3].name,
+                                                                           self.Rivals[3].health, self.Rivals[3].damage,
+                                                                           self.Rivals[3].protection,
+                                                                           self.Rivals[3].evasion)))
 
         self.assasin.setText(_translate("MainWindow", "В бой"))
         self.barbarian.setText(_translate("MainWindow", "В бой"))
@@ -356,172 +396,150 @@ class UiMainWindow(QWidget):
         self.orc.pressed.connect(self.fight_open)
         self.wizard.pressed.connect(self.fight_open)
 
+        self.grid.addWidget(self.label_13, 0, 0, 1, 1)
+        self.grid.addWidget(self.damage, 1, 1, 1, 1)
+        self.grid.addWidget(self.protection, 2, 1, 1, 1)
+        self.grid.addWidget(self.hp, 0, 1, 1, 1)
+        self.grid.addWidget(self.evasion_lab, 3, 1, 1, 1)
+        self.grid.addWidget(pushButton, 0, 3, 1, 1)
+        self.grid.addWidget(label_6, 4, 1, 1, 1)
+        self.grid.addWidget(label_5, 4, 0, 1, 1)
+        self.grid.addWidget(label_2, 4, 2, 1, 1)
+        self.grid.addWidget(label_4, 4, 3, 1, 1)
+        self.grid.addWidget(label, 5, 0, 1, 1)
+        self.grid.addWidget(label_3, 5, 1, 1, 1)
+        self.grid.addWidget(label_7, 5, 2, 1, 1)
+        self.grid.addWidget(label_8, 5, 3, 1, 1)
+        self.grid.addWidget(self.assasin, 6, 0, 1, 1)
+        self.grid.addWidget(self.barbarian, 6, 1, 1, 1)
+        self.grid.addWidget(self.orc, 6, 2, 1, 1)
+        self.grid.addWidget(self.wizard, 6, 3, 1, 1)
+
         # Магазин
         label_31 = QLabel(self)
-        label_31.setGeometry(QtCore.QRect(620, 70, 62, 16))
         label_31.setObjectName("label_31")
 
         label_117 = QLabel(self)
-        label_117.setGeometry(QtCore.QRect(700, 120, 61, 28))
         label_117.setObjectName("label_17")
 
         label_119 = QLabel(self)
-        label_119.setGeometry(QtCore.QRect(700, 210, 71, 28))
         label_119.setObjectName("label_19")
 
         label_116 = QLabel(self)
-        label_116.setGeometry(QtCore.QRect(700, 165, 111, 31))
         label_116.setObjectName("label_16")
 
         self.potion_agility = QPushButton(self)
-        self.potion_agility.setGeometry(QtCore.QRect(830, 110, 61, 91))
         self.potion_agility.setObjectName("self.potion_agility")
 
         label_118 = QLabel(self)
-        label_118.setGeometry(QtCore.QRect(700, 267, 71, 31))
         label_118.setObjectName("label_18")
 
         self.berserker = QPushButton(self)
-        self.berserker.setGeometry(QtCore.QRect(830, 210, 61, 91))
         self.berserker.setObjectName("self.berserker")
 
         self.stone_skin = QPushButton(self)
-        self.stone_skin.setGeometry(QtCore.QRect(830, 310, 61, 91))
         self.stone_skin.setObjectName("self.stone_skin")
 
         label_211 = QLabel(self)
-        label_211.setGeometry(QtCore.QRect(700, 370, 111, 31))
         label_211.setObjectName("label_21")
 
         label_210 = QLabel(self)
-        label_210.setGeometry(QtCore.QRect(700, 310, 91, 41))
         label_210.setObjectName("label_20")
 
         label_312 = QLabel(self)
-        label_312.setGeometry(QtCore.QRect(620, 110, 61, 91))
         label_312.setObjectName("label_32")
 
         label_313 = QLabel(self)
-        label_313.setGeometry(QtCore.QRect(620, 210, 61, 91))
         label_313.setObjectName("label_33")
 
         label_314 = QLabel(self)
-        label_314.setGeometry(QtCore.QRect(620, 310, 61, 91))
         label_314.setObjectName("label_34")
 
         label01 = QLabel(self)
-        label01.setGeometry(QtCore.QRect(10, 70, 61, 16))
         label01.setObjectName("label")
 
         label_216 = QLabel(self)
-        label_216.setGeometry(QtCore.QRect(10, 110, 61, 91))
         label_216.setObjectName("label_26")
 
         label_217 = QLabel(self)
-        label_217.setGeometry(QtCore.QRect(10, 210, 61, 91))
         label_217.setObjectName("label_27")
 
         label_61 = QLabel(self)
-        label_61.setGeometry(QtCore.QRect(90, 220, 41, 16))
         label_61.setObjectName("label_6")
 
         label_41 = QLabel(self)
-        label_41.setGeometry(QtCore.QRect(90, 110, 48, 16))
         label_41.setObjectName("label_4")
 
         label_51 = QLabel(self)
-        label_51.setGeometry(QtCore.QRect(90, 130, 71, 21))
         label_51.setObjectName("label_5")
 
         label_71 = QLabel(self)
-        label_71.setGeometry(QtCore.QRect(90, 240, 108, 32))
         label_71.setObjectName("label_7")
 
         self.sword_button = QPushButton(self)
-        self.sword_button.setGeometry(QtCore.QRect(210, 110, 61, 91))
         self.sword_button.setObjectName("self.sword_button")
 
         label_218 = QLabel(self)
-        label_218.setGeometry(QtCore.QRect(10, 320, 91, 91))
         label_218.setObjectName("label_28")
 
         label_81 = QLabel(self)
-        label_81.setGeometry(QtCore.QRect(90, 320, 91, 31))
         label_81.setObjectName("label_8")
 
         label_91 = QLabel(self)
-        label_91.setGeometry(QtCore.QRect(90, 340, 121, 31))
         label_91.setObjectName("label_9")
 
         self.axe_button = QPushButton(self)
-        self.axe_button.setGeometry(QtCore.QRect(210, 210, 61, 91))
         self.axe_button.setObjectName("self.axe_button")
 
         self.hammer_button = QPushButton(self)
-        self.hammer_button.setGeometry(QtCore.QRect(210, 320, 61, 91))
         self.hammer_button.setObjectName("self.hammer_button")
 
         label_21 = QLabel(self)
-        label_21.setGeometry(QtCore.QRect(360, 70, 83, 16))
         label_21.setObjectName("label_2")
 
         label_110 = QLabel(self)
-        label_110.setGeometry(QtCore.QRect(390, 110, 41, 16))
         label_110.setObjectName("label_10")
 
         label_112 = QLabel(self)
-        label_112.setGeometry(QtCore.QRect(390, 220, 61, 16))
         label_112.setObjectName("label_12")
 
         label_114 = QLabel(self)
-        label_114.setGeometry(QtCore.QRect(390, 332, 124, 20))
         label_114.setObjectName("label_14")
 
         label_111 = QLabel(self)
-        label_111.setGeometry(QtCore.QRect(390, 130, 81, 21))
         label_111.setObjectName("label_11")
 
         label_113 = QLabel(self)
-        label_113.setGeometry(QtCore.QRect(390, 240, 111, 32))
         label_113.setObjectName("label_13")
 
         label_115 = QLabel(self)
-        label_115.setGeometry(QtCore.QRect(390, 352, 111, 31))
         label_115.setObjectName("label_15")
 
         label_212 = QLabel(self)
-        label_212.setGeometry(QtCore.QRect(310, 110, 71, 91))
         label_212.setObjectName("label_22")
 
         label_213 = QLabel(self)
-        label_213.setGeometry(QtCore.QRect(310, 210, 71, 91))
         label_213.setObjectName("label_23")
 
         label_214 = QLabel(self)
-        label_214.setGeometry(QtCore.QRect(310, 320, 61, 81))
         label_214.setObjectName("label_24")
 
         self.mail_button = QPushButton(self)
-        self.mail_button.setGeometry(QtCore.QRect(520, 210, 61, 91))
         self.mail_button.setObjectName("self.mail_button")
 
         self.plate_armor = QPushButton(self)
-        self.plate_armor.setGeometry(QtCore.QRect(520, 310, 61, 91))
         self.plate_armor.setObjectName("self.plate_armor")
 
+        self.gold_label = QLabel(self)
+        self.gold_label.setObjectName("gold_label")
+
         self.cuirass = QPushButton(self)
-        self.cuirass.setGeometry(QtCore.QRect(520, 110, 61, 91))
         self.cuirass.setObjectName("self.cuirass")
 
         pushButton_71 = QPushButton(self)
-        pushButton_71.setGeometry(QtCore.QRect(355, 10, 211, 31))
         pushButton_71.setStyleSheet("background: rgb(34, 168, 19)\n""")
         pushButton_71.setObjectName("pushButton_7")
         pushButton_71.pressed.connect(self.main_open)
-
-        self.gold_label = QLabel(self)
-        self.gold_label.setGeometry(100, 22, 100, 16)
-        self.gold_label.setObjectName("gold_label")
 
         QtCore.QMetaObject.connectSlotsByName(self)
 
@@ -540,26 +558,37 @@ class UiMainWindow(QWidget):
 
         # НАДПИСИ С НАЗВАНИЯМИ И ХАРАКТЕРИСТИКАМИ ПРЕДМЕТОВ
         label_41.setText(_translate("Form", "Меч"))
-        label_51.setText(_translate("Form", "урон: +20"))
+        label_51.setText(_translate("Form", "Урон: +{}\nЦена: {} золотых".format(self.Items[0].damage,
+                                                                                 self.Items[0].get_price())))
         label_61.setText(_translate("Form", "Топор"))
-        label_71.setText(_translate("Form", "урон: +40"))
+        label_71.setText(_translate("Form", "Урон: +{}\nЦена: {} золотых".format(self.Items[1].damage,
+                                                                                 self.Items[1].get_price())))
         label_81.setText("Боевой молот")
-        label_91.setText("урон: +70")
+        label_91.setText("Урон: +{}\nЦена: {} золотых".format(self.Items[2].damage,
+                                                              self.Items[2].get_price()))
 
         label_117.setText("Зелье\nловкости")
         label_119.setText("Зелье\nберсеркера")
-        label_210.setText(_translate("Form", "Зелье\nстальной кожи"))
-        label_116.setText(_translate("Form", "увертливость: +30"))
-        label_118.setText(_translate("Form", "атака: +30"))
-        label_211.setText(_translate("Form", "защита: +30"))
+        label_210.setText(_translate("Form", "Зелье\nкаменной кожи"))
+        label_116.setText(_translate("Form", "Увертливость: +{}\nЦена: {} золотых".format(self.Items[6].points,
+                                                                                          self.Items[6].get_price())))
+        label_118.setText(_translate("Form", "Атака: +{}\nЦена: {} золотых".format(self.Items[7].points,
+                                                                                   self.Items[7].get_price())))
+        label_211.setText(_translate("Form", "Защита: +{}\nЦена: {} золотых".format(self.Items[8].points,
+                                                                                    self.Items[8].get_price())))
 
         label_21.setText(_translate("Form", "Броня:"))
         label_110.setText(_translate("Form", "Кираса"))
         label_112.setText(_translate("Form", "Кольчуга"))
         label_114.setText(_translate("Form", "Латы"))
-        label_111.setText(_translate("Form", "защита: +30"))
-        label_113.setText("защита: +60\nувертливость: -20")
-        label_115.setText("защита: +100\nувертливость: -50")
+        label_111.setText(_translate("Form", "Защита: +{}\nЦена: {} золотых".format(self.Items[3].protection,
+                                                                                    self.Items[3].get_price())))
+        label_113.setText("Защита: +{}\nУвертливость: {}\nЦена: {} золотых".format(self.Items[4].protection,
+                                                                                   self.Items[4].evasion,
+                                                                                   self.Items[4].get_price()))
+        label_115.setText("Защита: +{}\nУвертливость: {}\nЦена: {} золотых".format(self.Items[5].protection,
+                                                                                   self.Items[5].evasion,
+                                                                                   self.Items[5].get_price()))
 
         # КНОПКИ ПОКУПКИ ПРЕДМЕТОВ
         self.sword_button.setText("Купить")
@@ -577,17 +606,18 @@ class UiMainWindow(QWidget):
         self.plate_armor.pressed.connect(self.buy_item)
 
         self.potion_agility.setText("Купить")
-        # self.potion_agility.pressed.connect(self.buy_item)
+        self.potion_agility.pressed.connect(self.buy_item)
         self.berserker.setText("Купить")
-        # self.berserker.pressed.connect(self.buy_item)
+        self.berserker.pressed.connect(self.buy_item)
         self.stone_skin.setText("Купить")
-        # self.stone_skin.pressed.connect(self.buy_item)
+        self.stone_skin.pressed.connect(self.buy_item)
 
         label_212.setText(_translate("Form", "<html><head/><body><p><img src=\"cuirass.jpg\"/></p></body></html>"))
         label_213.setText(_translate("Form", "<html><head/><body><p><img src=\"chain.jpg\"/></p></body></html>"))
         label_214.setText(_translate("Form", "<html><head/><body><p><img src=\"armor.png\"/></p></body></html>"))
 
         pushButton_71.setText(_translate("Form", "Назад"))
+        self.gold_label.setText('Ваше золото: {}'.format(self.player.money))
 
         self.shop_list = [label_31, label_117, label_119, label_116, self.potion_agility, label_118,
                           self.berserker, self.stone_skin, label_211, label_210, label_312, label_313,
@@ -598,11 +628,67 @@ class UiMainWindow(QWidget):
                           label_214, self.mail_button, self.plate_armor, self.cuirass, pushButton_71,
                           self.gold_label]
 
-        # self.setLayout(self.grid)
         self.main_list = [self.label_13, self.damage, self.protection, pushButton, self.evasion_lab,
                           self.hp, label_6, label_5, label_2, label_4, label,
                           label_3, label_7, label_8, self.assasin, self.barbarian, self.orc,
                           self.wizard]
+
+        self.grid.addWidget(self.gold_label, 0, 4, 1, 1)
+        self.grid.addWidget(pushButton_71, 0, 5, 1, 1)
+        self.grid.addWidget(label01, 1, 0, 1, 1)
+
+        # ОРУЖИЕ
+        self.grid.addWidget(label_216, 3, 0, 1, 1)  # Картинка
+        self.grid.addWidget(label_41, 2, 1, 1, 1)  # Название
+        self.grid.addWidget(label_51, 3, 1, 1, 1)
+        self.grid.addWidget(self.sword_button, 3, 2)
+
+        self.grid.addWidget(label_217, 5, 0, 1, 1)  # Картинка
+        self.grid.addWidget(label_61, 4, 1, 1, 1)  # Название
+        self.grid.addWidget(label_71, 5, 1, 1, 1)  # Бонусы
+        self.grid.addWidget(self.axe_button, 5, 2)
+
+        self.grid.addWidget(label_218, 7, 0, 1, 1)  # Картинка
+        self.grid.addWidget(label_81, 6, 1, 1, 1)  # Название
+        self.grid.addWidget(label_91, 7, 1, 1, 1)  # Бонусы
+        self.grid.addWidget(self.hammer_button, 7, 2)  # Кнопка "Купить"
+
+        # БРОНЯ
+        self.grid.addWidget(label_21, 1, 3, 1, 1)
+
+        self.grid.addWidget(label_212, 3, 3, 1, 1)  # Картинка
+        self.grid.addWidget(label_110, 2, 4, 1, 1)  # Название
+        self.grid.addWidget(label_111, 3, 4, 1, 1)  # Бонусы
+        self.grid.addWidget(self.cuirass, 3, 5)
+
+        self.grid.addWidget(label_213, 5, 3, 1, 1)  # Картинка
+        self.grid.addWidget(label_112, 4, 4, 1, 1)  # Название
+        self.grid.addWidget(label_113, 5, 4, 1, 1)  # Бонусы
+        self.grid.addWidget(self.mail_button, 5, 5)  # Кнопка "Купить"
+
+        self.grid.addWidget(label_214, 7, 3, 1, 1)  # Картинка
+        self.grid.addWidget(label_114, 6, 4, 1, 1)  # Название
+        self.grid.addWidget(label_115, 7, 4, 1, 1)  # Бонусы
+        self.grid.addWidget(self.plate_armor, 7, 5)  # Кнопка "Купить"
+
+        # ЗЕЛЬЯ
+        self.grid.addWidget(label_31, 1, 6, 1, 1)
+
+        self.grid.addWidget(label_312, 3, 6, 1, 1)  # Картинка
+        self.grid.addWidget(label_117, 2, 7, 1, 1)  # Название
+        self.grid.addWidget(label_116, 3, 7, 1, 1)  # Бонусы
+        self.grid.addWidget(self.potion_agility, 3, 8)  # Кнопка "Купить"
+
+        self.grid.addWidget(label_313, 5, 6, 1, 1)  # Картинка
+        self.grid.addWidget(label_119, 4, 7, 1, 1)  # Название
+        self.grid.addWidget(label_118, 5, 7, 1, 1)  # Бонусы
+        self.grid.addWidget(self.berserker, 5, 8)  # Кнопка "Купить"
+
+        self.grid.addWidget(label_314, 7, 6, 1, 1)  # Картинка
+        self.grid.addWidget(label_210, 6, 7, 1, 1)  # Название
+        self.grid.addWidget(label_211, 7, 7, 1, 1)  # Бонусы
+        self.grid.addWidget(self.stone_skin, 7, 8)  # Кнопка "Купить"
+
         for i in self.shop_list:
             i.hide()
 
@@ -611,117 +697,79 @@ class UiMainWindow(QWidget):
                         self.Items[2]: self.hammer_button,
                         self.Items[3]: self.cuirass,
                         self.Items[4]: self.mail_button,
-                        self.Items[5]: self.plate_armor}
+                        self.Items[5]: self.plate_armor,
+                        self.Items[6]: self.potion_agility,
+                        self.Items[7]: self.berserker,
+                        self.Items[8]: self.stone_skin}
 
         # Бой
 
-        progressBars = QProgressBar(self)
-        progressBars.setGeometry(QtCore.QRect(40, 80, 171, 23))
-        progressBars.setProperty("value", 24)
-        progressBars.setObjectName("progressBar")
+        self.enemy_bar = QProgressBar(self)
+        self.enemy_bar.setProperty("value", 100)
+        self.enemy_bar.setMinimum(0)
+        self.enemy_bar.setObjectName("self.enemy_bar")
 
         self.enemy_hp = QLabel(self)
-        self.enemy_hp.setGeometry(QtCore.QRect(70, 60, 121, 16))
         self.enemy_hp.setObjectName("self.enemy_hp")
 
         self.textBrowsers = QTextBrowser(self)
-        self.textBrowsers.setGeometry(QtCore.QRect(270, 90, 372, 301))
         self.textBrowsers.setObjectName("textBrowser")
 
-        label_3s = QLabel(self)
-        label_3s.setGeometry(QtCore.QRect(60, 140, 55, 16))
-        label_3s.setObjectName("label_3")
-
         self.enemy_evasion = QLabel(self)
-        self.enemy_evasion.setGeometry(QtCore.QRect(60, 260, 151, 16))
         self.enemy_evasion.setObjectName("self.enemy_evasion")
 
         self.enemy_protect = QLabel(self)
-        self.enemy_protect.setGeometry(QtCore.QRect(60, 160, 101, 16))
         self.enemy_protect.setObjectName("self.enemy_protect")
 
-        label_6s = QLabel(self)
-        label_6s.setGeometry(QtCore.QRect(60, 280, 41, 16))
-        label_6s.setObjectName("label_6")
-
-        progressBar_2s = QProgressBar(self)
-        progressBar_2s.setGeometry(QtCore.QRect(720, 80, 171, 23))
-        progressBar_2s.setProperty("value", 24)
-        progressBar_2s.setObjectName("progressBar_2")
+        self.player_bar = QProgressBar(self)
+        self.player_bar.setProperty("value", 90)
+        self.player_bar.setMinimum(0)
+        self.player_bar.setObjectName("self.player_bar")
 
         self.player_hp = QLabel(self)
-        self.player_hp.setGeometry(QtCore.QRect(750, 60, 121, 16))
         self.player_hp.setObjectName("self.player_hp")
 
-        label_12s = QLabel(self)
-        label_12s.setGeometry(QtCore.QRect(60, 200, 55, 16))
-        label_12s.setObjectName("label_12")
-
         self.enemy_damage = QLabel(self)
-        self.enemy_damage.setGeometry(QtCore.QRect(60, 211, 101, 16))
         self.enemy_damage.setObjectName("self.enemy_damage")
 
         self.player_protect = QLabel(self)
-        self.player_protect.setGeometry(QtCore.QRect(760, 160, 101, 16))
         self.player_protect.setObjectName("self.player_protect")
 
-        label_9s = QLabel(self)
-        label_9s.setGeometry(QtCore.QRect(760, 140, 55, 16))
-        label_9s.setObjectName("label_9")
-
         self.player_damage = QLabel(self)
-        self.player_damage.setGeometry(QtCore.QRect(760, 211, 151, 16))
         self.player_damage.setObjectName("self.player_damage")
 
-        label_10s = QLabel(self)
-        label_10s.setGeometry(QtCore.QRect(760, 280, 51, 16))
-        label_10s.setObjectName("label_10")
-
         self.player_evasion = QLabel(self)
-        self.player_evasion.setGeometry(QtCore.QRect(760, 260, 151, 16))
         self.player_evasion.setObjectName("self.player_evasion")
 
-        label_15s = QLabel(self)
-        label_15s.setGeometry(QtCore.QRect(760, 200, 55, 16))
-        label_15s.setObjectName("label_15")
-
         self.attack_button = QPushButton(self)
-        self.attack_button.setGeometry(QtCore.QRect(270, 390, 171, 51))
         self.attack_button.setObjectName("self.attack_button")
 
         self.defend_button = QPushButton(self)
-        self.defend_button.setGeometry(QtCore.QRect(472, 390, 171, 51))
         self.defend_button.setObjectName("self.defend_button")
 
         self.leave = QPushButton(self)
-        self.leave.setGeometry(QtCore.QRect(350, 20, 201, 51))
         self.leave.setStyleSheet("background: rgb(34, 168, 19)\n")
         self.leave.setObjectName("pushButton_7")
         self.leave.pressed.connect(self.main_open)
         self.leave.pressed.connect(self.escape)
 
         label_16s = QLabel(self)
-        label_16s.setGeometry(QtCore.QRect(780, 20, 21, 16))
         label_16s.setObjectName("label_16")
 
         self.enemy_name = QLabel(self)
-        self.enemy_name.setGeometry(QtCore.QRect(80, 20, 95, 16))
         self.enemy_name.setObjectName("self.enemy_name")
 
-        _translates = QtCore.QCoreApplication.translate
-        self.setWindowTitle(_translates("Form", "Form"))
-
         # Характеристики врага
-        self.enemy_hp.setText(_translates("Form", "Здоровье: {}"))  # label_2s
-        self.enemy_damage.setText(_translates("Form", "Урон: {}"))  # label_13s
-        self.enemy_protect.setText(_translates("Form", "Защита: {}"))  # label_5s
-        self.enemy_evasion.setText(_translates("Form", "Увертливость: {}"))  # label_4s
+        self.enemy_hp.setText(_translate("Form", "Здоровье: {}"))  # label_2s
+        self.enemy_damage.setText(_translate("Form", "Урон: {}"))  # label_13s
+        self.enemy_protect.setText(_translate("Form", "Защита: {}"))  # label_5s
+        self.enemy_evasion.setText(_translate("Form", "Увертливость: {}"))  # label_4s
 
         # Характеристики игрока
-        self.player_hp.setText(_translates("Form", "Здоровье: {}"))  # label_7s
-        self.player_protect.setText(_translates("Form", "Защита: {}"))  # label_8s
-        self.player_damage.setText(_translates("Form", "Урон: {}"))  # label_14
-        self.player_evasion.setText(_translates("Form", "Увертливость: {}"))  # label_11
+        self.player_hp.setText(_translate("Form", "Здоровье: {}"))  # label_7s
+        self.player_protect.setText(_translate("Form", "Защита: {}"))  # label_8s
+        self.player_damage.setText(_translate("Form", "Урон: {}"))  # label_14
+        self.player_evasion.setText(_translate("Form", "Увертливость: {}"))  # label_11
 
         # надписи для игрока
         self.player_fight = [self.player_hp, self.player_damage, self.player_protect, self.player_evasion]
@@ -738,26 +786,52 @@ class UiMainWindow(QWidget):
         label_16s.setText(_translate("Form", "Вы"))
         self.enemy_name.setText(_translate("Form", "Ловкач"))
 
-        self.fight_list = [self.enemy_hp, label_3s, self.enemy_evasion, self.enemy_protect,
-                           label_6s, self.textBrowsers, self.player_hp, self.player_protect, label_9s,
-                           label_10s, self.player_evasion, label_12s, self.enemy_damage,
-                           self.player_damage, label_15s, progressBar_2s, progressBars,
+        self.fight_list = [self.enemy_hp, self.enemy_evasion, self.enemy_protect,
+                           self.textBrowsers, self.player_hp, self.player_protect,
+                           self.player_evasion, self.enemy_damage,
+                           self.player_damage, self.player_bar, self.enemy_bar,
                            self.defend_button, self.attack_button, self.leave,
                            self.enemy_name, label_16s]
+
+        self.grid.addWidget(self.enemy_name, 0, 0, 1, 1)
+        self.grid.addWidget(self.enemy_bar, 2, 0, 1, 1)
+        self.grid.addWidget(self.enemy_hp, 1, 0, 1, 1)
+        self.grid.addWidget(self.enemy_damage, 3, 0, 1, 1)
+        self.grid.addWidget(self.enemy_protect, 4, 0, 1, 1)
+        self.grid.addWidget(self.enemy_evasion, 5, 0, 1, 1)
+        self.grid.addWidget(self.leave, 0, 2, 1, 1)
+        self.grid.addWidget(self.textBrowsers, 1, 1, 5, 3)
+        self.grid.addWidget(label_16s, 0, 4, 1, 1)
+        self.grid.addWidget(self.defend_button, 6, 3, 1, 1)
+        self.grid.addWidget(self.attack_button, 6, 1, 1, 1)
+        self.grid.addWidget(self.player_hp, 1, 4, 1, 1)
+        self.grid.addWidget(self.player_bar, 2, 4, 1, 1)
+        self.grid.addWidget(self.player_damage, 3, 4, 1, 1)
+        self.grid.addWidget(self.player_protect, 4, 4, 1, 1)
+        self.grid.addWidget(self.player_evasion, 5, 4, 1, 1)
 
         for i in self.fight_list:
             i.hide()
 
+        self.setLayout(self.grid)
+
     # ФУНКЦИЯ ПОКУПКИ ПРЕДМЕТА
     def buy_item(self):
-        a = self.sender().objectName().split('.')[1]  # Вытаскиваем название кнопки
+        a = self.sender().objectName().split('.')[1]  # Вытаскиваем название кнопки\
         item = self.ITEMS[a]
 
-        if self.gold >= item.get_price():
-            self.sender().setText('Надеть')
+        if self.player.money >= item.get_price():
+
+            if not type(item) == Potion:
+                self.sender().setText('Надеть')
+
+            else:
+                self.sender().setText('Выпить')
+
             self.sender().disconnect()
             self.sender().pressed.connect(self.equip)
-            self.gold -= item.get_price()
+            self.player.money -= item.get_price()
+            self.gold_label.setText('Ваше золото: {}'.format(self.player.money))
 
     def shop_open(self):
         self.player.set_win(self.Person_Main)
@@ -765,18 +839,18 @@ class UiMainWindow(QWidget):
             i.hide()
         for i in self.shop_list:
             i.show()
-        self.gold_label.setText("Ваше золото: {}".format(self.gold))
         self.setWindowTitle("Магазин")
 
     def fight_open(self):  # НАЧАЛО БОЯ
+
         self.player.set_win(self.player_fight)
         self.player.print_info()
         self.turn = 'player'
 
-        for i in self.fight_list:
-            i.show()
         for i in self.main_list:
             i.hide()
+        for i in self.fight_list:
+            i.show()
 
         a = self.sender().objectName().split('.')[1]  # Вытаскиваем название кнопки
         self.rival = self.RIVALS[a]  # Достаем соперника из списка боссов
@@ -787,6 +861,12 @@ class UiMainWindow(QWidget):
         self.player.set_rival(self.rival)  # Добавляем герою врага (чтобы было кого бить)
         self.enemy_name.setText(self.rival.name)  # Имя врага
 
+        self.enemy_bar.setMaximum(self.rival.health)
+        self.enemy_bar.setValue(self.rival.health)
+
+        self.player_bar.setMaximum(self.player.health)
+        self.player_bar.setValue(self.player.health)
+
         self.textBrowsers.append('''{} готов к сражению.
 Бой начался\nВаш ход первый.\n'''.format(self.rival.name))
 
@@ -795,6 +875,7 @@ class UiMainWindow(QWidget):
     def attack(self):
         if self.turn == 'player':
             self.textBrowsers.append(self.player.attack())
+            self.enemy_bar.setValue(self.rival.health)
             self.player.print_info()
             self.rival.print_info()
             if self.rival.health == 0:
@@ -818,6 +899,7 @@ class UiMainWindow(QWidget):
 
     def enemy_turn(self):
         self.textBrowsers.append(self.rival.attack())
+        self.player_bar.setValue(self.player.health)
         self.player.print_info()
         if self.player.health == 0:
             self.textBrowsers.append(self.player.defeated())
@@ -854,7 +936,7 @@ class UiMainWindow(QWidget):
         elif item.i_type == 'armor':
             if self.player.equip_armor not in self.Items:
                 self.sender().setText('Снять')
-                self.player.set_new_armor(item)
+                self.player.drink(item)
             elif self.player.equip_armor == item:
                 self.sender().setText('Надеть')
                 self.player.set_new_armor(Armor('', 0, 0, 0))
@@ -863,14 +945,20 @@ class UiMainWindow(QWidget):
                 self.BUTTONS[self.player.equip_armor].setText('Надеть')
                 self.player.set_new_armor(item)
 
+        elif item.i_type == 'potion':
+            if item.name() not in self.potions:
+                self.sender().setText('Купить')
+                self.player.drink(item)
+
     def main_open(self):
         self.player.set_win(self.Person_Main)
-        for i in self.main_list:
-            i.show()
+        self.resize(500, 500)
         for i in self.shop_list:
             i.hide()
         for i in self.fight_list:
             i.hide()
+        for i in self.main_list:
+            i.show()
 
     def get_player(self):  # Функция, возвращающая игрока, чтобы изменять его данные
         return self.player
