@@ -152,7 +152,7 @@ class Person:  # класс персонажа
 
         self.out_protec = self.protection * 0.5  # увеличиваем в полтора раза выдаваемую защиту
         self.out_evas = self.evasion * 0.2  # увеличиваем в 1.2 раза выдаваемое уклонение
-        return '{} встал в защитную стойку.\n'.format(self.name)
+        return '{} встал в защитную стойку.'.format(self.name)
 
     def attack(self):  # функция атаки
 
@@ -170,17 +170,17 @@ class Person:  # класс персонажа
             # (т.е. выпало случайное число на кубике)
             critism_of_damage = randint(7, 10) / 10  # коэффициент уменьшения брони
             damage = att - ((self.protection + self.out_protec) * critism_of_damage)  # формула, высчитывающая нанесенный урон
-            damage += att * 0.2
+            damage += int(att * 0.2)
             if damage < 0:
                 damage = 0
             self.health -= damage  # формула по вычету здоровья
             if self.health < 0:
                 self.health = 0
             # Обновляем сообщение для лога
-            the_ans += 'Удар нанес урона {}\n'.format(damage)
+            the_ans += 'Удар нанес урона {}'.format(int(damage))
         # если шанс попадания входит в диапазон [0, evasion] (Промах)
         else:
-            the_ans += 'Промах\n'
+            the_ans += 'Промах'
         return the_ans
 
 
@@ -189,9 +189,10 @@ class UiMainWindow(QWidget):
     def __init__(self, hero):
         super().__init__()
         self.turn = 'player'
+        self.action_points = 2
         # Третье (второе) значение у этих предметов - их цена, расставляй ее там
         self.Items = [Weapon('Меч', 20, 30), Weapon('Боевой топор', 40, 50),
-                      Weapon('Боевой молот', 70, 80), Armor('Кираса', 30, 0, 25),
+                      Weapon('Боевой молот', 70, 80), Armor('Кираса', 30, 0, 20),
                       Armor('Кольчуга', 60, -30, 50), Armor('Латы', 100, -50, 100),
                       Potion('Зелье Ловкости', 30, 30), Potion('Ярость Берсерка', 30, 30),
                       Potion('Камнекожа', 30, 30)]
@@ -203,7 +204,7 @@ class UiMainWindow(QWidget):
                       'mail_button': self.Items[4],
                       'plate_armor': self.Items[5]}
 
-        self.Rivals = [Person('Шарль Убийца', 80, 15, 40, 60, 40),
+        self.Rivals = [Person('Шарль Убийца', 80, 5, 40, 50, 40),
                        Person('Харальд', 140, 35, 50, 0, 40),
                        Person("Ураг гро-Шуб", 120, 25, 60, 30, 60),
                        Person('Малакат', 90, 10, 70, 60, 120)]
@@ -307,7 +308,7 @@ class UiMainWindow(QWidget):
         label_4.setText(_translate("MainWindow", "<html><head/><body><p><img src=\"mag.jpg\"/></p></body></html>"))
         
         label.setText(_translate("MainWindow", "{}\n"
-                                   "Великий ветеран Арены\n\n"
+                                   "Ловкий и увертливый убийцв\n\n"
                                    "Характкристики:\n"
                                    "Здоровье : {}\n"
                                    "Атака: {}\n"
@@ -317,7 +318,7 @@ class UiMainWindow(QWidget):
                                    self.Rivals[0].protection, self.Rivals[0].evasion)))
         
         label_3.setText(_translate("MainWindow", "{}\n"
-                                   "Великий ветеран Арены\n\n"
+                                   "Жестокий и сильный воин\n\n"
                                    "Характкристики:\n"
                                    "Здоровье : {}\n"
                                    "Атака: {}\n"
@@ -786,6 +787,7 @@ class UiMainWindow(QWidget):
 
     def shop_open(self):
         self.player.set_win(self.Person_Main)
+        self.gold_label.setText('Ваше золото: {}'.format(self.player.money))
         for i in self.main_list:
             i.hide()
         for i in self.shop_list:
@@ -797,6 +799,7 @@ class UiMainWindow(QWidget):
         self.player.set_win(self.player_fight)
         self.player.print_info()
         self.turn = 'player'
+        self.action_points = 2
         
         for i in self.main_list:
             i.hide()        
@@ -824,7 +827,9 @@ class UiMainWindow(QWidget):
         
     def attack(self):
         if self.turn == 'player':
+            self.action_points -= 1
             self.textBrowsers.append(self.player.attack())
+            self.textBrowsers.append('Ваши очки действия: {}\n'.format(self.action_points))
             self.enemy_bar.setValue(self.rival.health)
             self.player.print_info()
             self.rival.print_info()
@@ -835,20 +840,26 @@ class UiMainWindow(QWidget):
                 self.attack_button.hide()
                 self.defend_button.hide()
             else:
-                self.turn = 'enemy'
-                self.rival.end_defend()
-                self.enemy_turn()
+                if self.action_points < 1:
+                    self.action_points = 2
+                    self.turn = 'enemy'
+                    self.rival.end_defend()
+                    self.enemy_turn()
             
     def defend(self):
         if self.turn == 'player':
             self.textBrowsers.append(self.player.defend())
+            self.textBrowsers.append('Ваши очки действия: {}\n'.format(0))
             self.player.print_info()
+            self.action_points = 2
             self.turn = 'enemy'
             self.rival.end_defend()
             self.enemy_turn()
             
     def enemy_turn(self):
+        self.action_points -= 1
         self.textBrowsers.append(self.rival.attack())
+        self.textBrowsers.append('Очки действий вашего соперника: {}\n'.format(self.action_points))
         self.player_bar.setValue(self.player.health)
         self.player.print_info()
         if self.player.health == 0:
@@ -857,9 +868,13 @@ class UiMainWindow(QWidget):
             self.attack_button.hide()
             self.defend_button.hide()
         else:
-            self.turn = 'player'
-        self.player.end_defend()
-
+            if self.action_points < 1:
+                self.action_points = 2
+                self.turn = 'player'
+                self.player.end_defend()                
+            else:
+                self.enemy_turn()
+                
     def escape(self):
         self.textBrowsers.setPlainText('')
         self.player.end_defend()
