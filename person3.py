@@ -602,10 +602,11 @@ class UiMainWindow(QWidget):
 
         # Бой
 
-        progressBars = QProgressBar(self)
-        progressBars.setGeometry(QtCore.QRect(40, 80, 171, 23))
-        progressBars.setProperty("value", 24)
-        progressBars.setObjectName("progressBar")
+        self.enemy_bar = QProgressBar(self)
+        self.enemy_bar.setGeometry(QtCore.QRect(40, 80, 171, 23))
+        self.enemy_bar.setProperty("value", 100)
+        self.enemy_bar.setMinimum(0)
+        self.enemy_bar.setObjectName("self.enemy_bar")
 
         self.enemy_hp = QLabel(self)
         self.enemy_hp.setGeometry(QtCore.QRect(70, 60, 121, 16))
@@ -631,10 +632,11 @@ class UiMainWindow(QWidget):
         label_6s.setGeometry(QtCore.QRect(60, 280, 41, 16))
         label_6s.setObjectName("label_6")
 
-        progressBar_2s = QProgressBar(self)
-        progressBar_2s.setGeometry(QtCore.QRect(720, 80, 171, 23))
-        progressBar_2s.setProperty("value", 24)
-        progressBar_2s.setObjectName("progressBar_2")
+        self.player_bar = QProgressBar(self)
+        self.player_bar.setGeometry(QtCore.QRect(720, 80, 171, 23))
+        self.player_bar.setProperty("value", 90)
+        self.player_bar.setMinimum(0)
+        self.player_bar.setObjectName("self.player_bar")
 
         self.player_hp = QLabel(self)
         self.player_hp.setGeometry(QtCore.QRect(750, 60, 121, 16))
@@ -728,7 +730,7 @@ class UiMainWindow(QWidget):
         self.fight_list = [self.enemy_hp, label_3s, self.enemy_evasion, self.enemy_protect,
                            label_6s, self.textBrowsers, self.player_hp, self.player_protect, label_9s,
                            label_10s, self.player_evasion, label_12s, self.enemy_damage,
-                           self.player_damage, label_15s, progressBar_2s, progressBars,
+                           self.player_damage, label_15s, self.player_bar, self.enemy_bar,
                            self.defend_button, self.attack_button, self.leave,
                            self.enemy_name, label_16s]
 
@@ -750,6 +752,7 @@ class UiMainWindow(QWidget):
         self.setWindowTitle("Магазин")
 
     def fight_open(self):  # НАЧАЛО БОЯ
+        
         self.player.set_win(self.player_fight)
         self.player.print_info()
         self.turn = 'player'
@@ -766,6 +769,12 @@ class UiMainWindow(QWidget):
         self.rival.set_rival(self.player)  # Устанавливаем врагу в качестве соперника игрока
         self.player.set_rival(self.rival)  # Добавляем герою врага (чтобы было кого бить)
         self.enemy_name.setText(self.rival.name)  # Имя врага
+        
+        self.enemy_bar.setMaximum(self.rival.health)
+        self.enemy_bar.setValue(self.rival.health)
+        
+        self.player_bar.setMaximum(self.player.health)
+        self.player_bar.setValue(self.player.health)
 
         self.textBrowsers.append('''{} готов к сражению.
 Бой начался\nВаш ход первый.\n'''.format(self.rival.name))
@@ -775,6 +784,7 @@ class UiMainWindow(QWidget):
     def attack(self):
         if self.turn == 'player':
             self.textBrowsers.append(self.player.attack())
+            self.enemy_bar.setValue(self.rival.health)
             self.player.print_info()
             self.rival.print_info()
             if self.rival.health == 0:
@@ -798,6 +808,7 @@ class UiMainWindow(QWidget):
             
     def enemy_turn(self):
         self.textBrowsers.append(self.rival.attack())
+        self.player_bar.setValue(self.player.health)
         self.player.print_info()
         if self.player.health == 0:
             self.textBrowsers.append(self.player.defeated())
