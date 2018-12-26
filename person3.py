@@ -160,7 +160,7 @@ class Person:  # класс персонажа
 
     def defend(self):  # функция обороны
 
-        self.out_protec = self.protection * 0.5  # увеличиваем в полтора раза выдаваемую защиту
+        self.out_protec = self.protection  # увеличиваем в два раза выдаваемую защиту
         self.out_evas = self.evasion * 0.2  # увеличиваем в 1.2 раза выдаваемое уклонение
         return '{} встал в защитную стойку.'.format(self.name)
 
