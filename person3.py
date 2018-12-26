@@ -16,11 +16,14 @@ class Potion:  # зелье
     def __init__(self, parameter, points, price):
         self.parameter = parameter
         self.points = points
-        self.itype = 'potion'
+        self.i_type = 'potion'
         self.price = price  # Цена предмета, вводится при создании
         
     def get_price(self):
         return self.price    
+
+    def get_bonus(self):
+        return self.parameter, self.points  
 
 
 class Armor:  # класс брони
@@ -76,6 +79,7 @@ class Person:  # класс персонажа
         self.equip_weapon = Weapon('Кулаки', 3, 0)  # дефолтное оружие, надетое на перса
         self.rival = ''  # Соперник
         self.win = ''  # Список, в котором выводится вся инфа персонажа
+        self.potion_effects = {'evasion': 0, 'damage': 0, 'protect': 0}  # Эффекты от зелий
         
         self.money = money  # Золото игрока (запас денег игрока)
 
@@ -140,13 +144,19 @@ class Person:  # класс персонажа
         self.damage = self.defaults[2]
         self.protection = self.defaults[1]
         self.evasion = self.defaults[3]
+        for i in self.potion_effects.keys():
+            self.potion_effects[i] = 0
         self.print_info()
+        
+    def drink(self, potion):  # функция для выпивания зелий
+        self.potion_effects[potion.get_bonus()[0]] += potion.get_bonus()[1]
+        print(self.potion_effects)
 
     def print_info(self):  # функция, выводящая всю инфу по персонажу
         self.win[0].setText('Здоровье: {}'.format(self.health))
-        self.win[1].setText('Урон: {}'.format(self.damage))
-        self.win[2].setText('Защита: {}'.format(self.protection + self.out_protec))
-        self.win[3].setText('Увертливость: {}'.format(self.evasion + self.out_evas))
+        self.win[1].setText('Урон: {}'.format(self.damage + self.potion_effects['damage']))
+        self.win[2].setText('Защита: {}'.format(self.protection + self.out_protec + self.potion_effects['protect']))
+        self.win[3].setText('Увертливость: {}'.format(self.evasion + self.out_evas + self.potion_effects['evasion']))
 
     def defend(self):  # функция обороны
 
@@ -156,20 +166,23 @@ class Person:  # класс персонажа
 
     def attack(self):  # функция атаки
 
-        a = self.rival.set_damage(self.damage)  # наносим сопернику урон
+        a = self.rival.set_damage(self.damage + self.potion_effects['damage'])  # наносим сопернику урон
         return '{} атаковал соперника.\n{}'.format(self.name, a)
     
     def defeated(self):
         return '{} получает ранение и падает без сознания на окровавленные пески Арены...'.format(self.name)
 
     def set_damage(self, att):  # функция получения урона
-
-        the_ans = 'Шанс попадания {}%\n'.format(100 - self.evasion)  # выводимое в лог сообщение
+        
+        current_protec = self.protection + self.out_protec + self.potion_effects['protect']
+        current_evasion = self.evasion + self.out_evas + self.potion_effects['evasion']
+        
+        the_ans = 'Шанс попадания {}%\n'.format(100 - current_evasion)  # выводимое в лог сообщение
         chance_to_evade = randint(1, 100)  # число, шанс попадания
-        if chance_to_evade > self.evasion:  # если шанс попадания не больше уклонения
+        if chance_to_evade > current_evasion:  # если шанс попадания не больше уклонения
             # (т.е. выпало случайное число на кубике)
             critism_of_damage = randint(8, 10) / 10  # коэффициент уменьшения брони
-            damage = att - ((self.protection + self.out_protec) * critism_of_damage)  # формула, высчитывающая нанесенный урон
+            damage = att - (current_protec * critism_of_damage)  # формула, высчитывающая нанесенный урон
             if damage < 0:
                 damage = att * 0.25
             self.health -= damage  # формула по вычету здоровья
@@ -193,15 +206,18 @@ class UiMainWindow(QWidget):
         self.Items = [Weapon('Меч', 20, 30), Weapon('Боевой топор', 40, 50),
                       Weapon('Боевой молот', 70, 80), Armor('Кираса', 30, 0, 20),
                       Armor('Кольчуга', 60, -30, 55), Armor('Латы', 100, -50, 100),
-                      Potion('Зелье Ловкости', 30, 30), Potion('Ярость Берсерка', 30, 30),
-                      Potion('Камнекожа', 30, 30)]
+                      Potion('evasion', 30, 30), Potion('damage', 30, 30),
+                      Potion('protect', 30, 30)]
 
         self.ITEMS = {'sword_button': self.Items[0],
                       'axe_button': self.Items[1],
                       'hammer_button': self.Items[2],
                       'cuirass': self.Items[3],
                       'mail_button': self.Items[4],
-                      'plate_armor': self.Items[5]}
+                      'plate_armor': self.Items[5],
+                      'potion_agility': self.Items[6],
+                      'berserker': self.Items[7],
+                      'stone_skin': self.Items[8]}
 
         self.Rivals = [Person('Шарль Убийца', 80, 5, 40, 50, 40),
                        Person('Харальд', 140, 35, 50, 0, 40),
@@ -567,11 +583,11 @@ class UiMainWindow(QWidget):
         self.plate_armor.pressed.connect(self.buy_item)
 
         self.potion_agility.setText("Купить")
-        # self.potion_agility.pressed.connect(self.buy_item)
+        self.potion_agility.pressed.connect(self.buy_item)
         self.berserker.setText("Купить")
-        # self.berserker.pressed.connect(self.buy_item)
+        self.berserker.pressed.connect(self.buy_item)
         self.stone_skin.setText("Купить")
-        # self.stone_skin.pressed.connect(self.buy_item)
+        self.stone_skin.pressed.connect(self.buy_item)
 
         label_212.setText(_translate("Form", "<html><head/><body><p><img src=\"cuirass.jpg\"/></p></body></html>"))
         label_213.setText(_translate("Form", "<html><head/><body><p><img src=\"chain.jpg\"/></p></body></html>"))
@@ -778,7 +794,13 @@ class UiMainWindow(QWidget):
         a = self.sender().objectName().split('.')[1]  # Вытаскиваем название кнопки
         item = self.ITEMS[a]
         if self.player.money >= item.get_price():
-            self.sender().setText('Надеть')
+            
+            if not item.i_type == 'potion':
+                self.sender().setText('Надеть')
+            
+            else:
+                self.sender().setText('Выпить')            
+
             self.sender().disconnect()
             self.sender().pressed.connect(self.equip)
             self.player.money -= item.get_price()
@@ -908,9 +930,16 @@ class UiMainWindow(QWidget):
                 self.sender().setText('Снять')
                 self.BUTTONS[self.player.equip_armor].setText('Надеть')
                 self.player.set_new_armor(item)
+                
+        elif item.i_type == 'potion':
+            self.player.drink(item)    
+            self.sender().disconnect()
+            self.sender().pressed.connect(self.buy_item)
+            self.sender().setText('Купить')
 
     def main_open(self): 
         self.player.set_win(self.Person_Main)
+        self.player.print_info()
         self.resize(500, 500)
         for i in self.shop_list:
             i.hide()
