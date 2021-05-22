@@ -41,6 +41,7 @@ class Dialog(QWidget):
             self.label.setText(_translate("Dialog", "Вы проиграли бой, обагрив\n"
                                                     "своей кровью пески Арены.").format(num))
 
+
 class Potion:  # зелье
 
     def __init__(self, parameter, points, price):
