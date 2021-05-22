@@ -41,4 +41,48 @@ class Dialog(QWidget):
             self.label.setText(_translate("Dialog", "Вы проиграли бой, обагрив\n"
                                                     "своей кровью пески Арены.").format(num))
 
+class Potion:  # зелье
+
+    def __init__(self, parameter, points, price):
+        self.parameter = parameter
+        self.points = points
+        self.i_type = 'potion'
+        self.price = price  # Цена предмета, вводится при создании
+
+    def get_price(self):
+        return self.price
+
+    def get_bonus(self):
+        return self.parameter, self.points
+
+
+class Armor:  # класс брони
+
+    def __init__(self, name, protection, evasion, price):  # конструктор
+        self.name = name  # название
+        self.protection = protection  # Защита этой броней
+        self.evasion = evasion  # Штраф/бонус к уклонению
+        self.i_type = 'armor'
+        self.price = price  # цена предмета
+
+    def name(self):  # функция, возвращающая название предмета
+        return self.name
+
+    def get_price(self):
+        return self.price
+
+
+class Weapon:  # класс оружия
+
+    def __init__(self, name, damage, price):  # конструктор
+        self.name = name  # название
+        self.damage = damage  # Урон этого оружия
+        self.i_type = 'weapon'
+        self.price = price  # цена
+
+    def name(self):  # функция, возвращающая название предмета
+        return self.name
+
+    def get_price(self):
+        return self.price
 
